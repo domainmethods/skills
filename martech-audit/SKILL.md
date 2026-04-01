@@ -13,12 +13,19 @@ Most analytics audits look at static HTML or rely on the site owner granting GA4
 
 ## Tool Requirements
 
-This skill **requires chrome-devtools-mcp** (runtime browser inspection). The audit depends on evaluating JavaScript in a live browser, observing network requests, and inspecting the dataLayer at runtime — none of which are possible with static HTML extraction.
+This skill works best with **chrome-devtools-mcp** (runtime browser inspection). The full audit depends on evaluating JavaScript in a live browser, observing network requests, and inspecting the dataLayer at runtime.
 
-**If chrome-devtools-mcp is not available, stop and tell the user:**
-> "This audit requires chrome-devtools-mcp to inspect live browser behavior (dataLayer, network requests, consent state, runtime-injected pixels). Please ensure chrome-devtools-mcp is configured and connected before running the audit."
+**If chrome-devtools-mcp is not available**, tell the user and offer a static-analysis fallback:
+> "chrome-devtools-mcp is not available. I can run a static HTML analysis using curl/tavily_extract, which will catch ~60% of issues (tag presence, schema, OG tags, privacy policy gaps, cross-domain links, UTM redirect survival) but cannot verify: runtime dataLayer events, consent-gated tag loading, actual pixel fire rates, or JavaScript errors. Want me to proceed with static analysis?"
 
-Do not attempt a fallback with tavily_extract — the results would be too incomplete to be useful (roughly 60% of checks require runtime data).
+**If chrome-devtools-mcp is available but the site blocks headless browsers** (bot protection redirecting to Google, CAPTCHA walls, or blank pages), this is a different failure mode — the browser works but the site rejects it. Detect this by checking if the loaded page's domain matches the target domain after navigation. If it doesn't:
+1. Note the bot protection in the report (this is itself a finding — overly aggressive bot blocking can affect SEO crawlers and analytics debugging tools)
+2. Fall back to static HTML analysis via `curl` with a standard browser User-Agent string, or `tavily_extract`
+3. Clearly caveat which checks could not be performed in the report header
+
+Static analysis can still catch: GTM/GA4/pixel presence in HTML, schema markup, OG/meta tags, canonical URLs, privacy policy disclosure gaps, cross-domain link issues, form hidden field presence, UTM redirect survival (via HTTP header inspection), and multi-platform architecture fractures. These are often the highest-value bizdev findings anyway.
+
+**Static analysis pixel detection precision warning:** In static mode, detect pixels by their initialization code (`fbq(`, `ttq.load(`, `pintrk(`, `_linkedin_partner_id`, `clarity(`, `hj(`), NOT by brand name mentions. A page mentioning "facebook.com/companyname" in a social link or having `facebook-domain-verification` in a meta tag does NOT mean the Facebook Pixel is present. Similarly, `tiktok.com/@handle` in a footer link is not the TikTok pixel. Many ad pixels are loaded by GTM at runtime and leave zero trace in the static HTML — in that case, report "pixel presence could not be confirmed (GTM-loaded, requires runtime verification)" rather than claiming the pixel is present or absent.
 
 ## Audit Workflow
 
@@ -32,6 +39,9 @@ Do not attempt a fallback with tavily_extract — the results would be too incom
    - Contact/demo/booking page (the conversion page)
    - Blog (sample 1 post)
    - Privacy policy page (for compliance audit)
+
+   **If `tavily_map` returns empty** (common with Shopify sites, bot-protected sites, or SPAs), fall back to HTML link extraction: fetch the homepage via `tavily_extract` or `curl`, then parse internal links from `<a href="...">` tags. This reliably produces the site structure even when crawlers are blocked.
+
 3. **Select 4-6 pages** covering these types. Always include homepage + the primary conversion page + the privacy policy.
 
 **Enterprise site architecture note:** Large sites often run different applications on different URL paths or subdomains (e.g., marketing site on `/` is AEM/WordPress, shop on `/shop/` is a React SPA, blog on `blog.` subdomain is HubSpot). These often have **completely different tagging stacks** — different GTM containers, different pixels, different analytics. Always include at least one page from each distinct application area to catch cross-architecture gaps. If the homepage has 9 GTM containers but the shop has 1, that's a critical finding about fractured measurement.
@@ -42,10 +52,25 @@ Do not attempt a fallback with tavily_extract — the results would be too incom
 
 For each selected page, open it in chrome-devtools-mcp and run these checks. The order matters — some checks depend on the page being fully loaded.
 
-#### Step 1: Load the page and collect network requests
+#### Step 1: Load the page and verify it loaded correctly
 
 ```
 new_page → url
+```
+
+**Bot-blocking detection (critical — do this FIRST before any other checks):**
+
+After the page loads, immediately verify the loaded domain matches the target:
+```javascript
+evaluate_script: () => ({ loadedUrl: document.location.href, loadedHost: document.location.hostname })
+```
+
+If the hostname does NOT match the target domain (e.g., you navigated to `joinweightcare.com` but `document.location.hostname` is `www.google.com`), the site has **bot protection that redirects headless browsers**. Common culprits: Shopify's Blockify app, DataDome, PerimeterX, Cloudflare Bot Management, AWS WAF. Do NOT proceed with the JS eval — you'd be inspecting the wrong site.
+
+Instead: fall back to static HTML analysis (see Tool Requirements above). Note the bot protection as a finding in the report — overly aggressive bot blocking can affect Googlebot rendering, SEO crawler tools, accessibility testing, and analytics debugging.
+
+**If the domain matches**, continue with network request collection:
+```
 list_network_requests → resourceTypes: ["script", "ping", "xhr", "fetch"]
 ```
 
@@ -272,6 +297,8 @@ Navigate to the privacy policy page (usually `/privacy`, `/privacy-policy`, or l
 
 1. **Disclosed third-party tools** — Does the policy mention GA4, GTM, any pixels found, B2B reveal tools, email marketing platforms, and session recording tools? Each tool that collects user data should be disclosed.
 2. **Undisclosed tools** — Compare the tools you detected in Phase 2 against what the privacy policy mentions. Any gap is a finding. B2B reveal tools (RB2B, Leadfeeder, etc.) that de-anonymize visitors are particularly important to disclose and are frequently missing.
+
+   **Critical: search the policy PROSE, not the page HTML.** Privacy policy pages contain the site's own tracking scripts (GTM snippet, pixel code, Shopify app blocks) alongside the policy text. If you search the full page HTML for "klaviyo," you'll find it in a `<script>` tag and falsely conclude it's disclosed — when it's actually just the Klaviyo JS loading on the page. Extract the policy body text first (the content inside the main article/policy div, stripped of `<script>` and `<style>` tags), then search that text for tool mentions. Also exclude navigation menus and footers, which often contain social media links that match brand names (e.g., "facebook.com/company" in a footer link is not a disclosure of the Facebook Pixel).
 3. **Cookie disclosure** — Does the policy list specific cookie names and purposes? Are the cookies you found in the audit accounted for?
 4. **Data processor disclosure** — Are server-side tagging providers (Stape.io, etc.) disclosed as data processors?
 
@@ -472,7 +499,7 @@ After collecting eval data from all pages, save each page's JS eval result as a 
 python scripts/check_findings.py --dir /path/to/page-evals/ --pretty
 ```
 
-This script runs 32 deterministic checks across all pages and produces structured findings with severity levels. It catches:
+This script runs 35 deterministic checks across all pages and produces structured findings with severity levels. It catches:
 - Double-tagging (hardcoded gtag + GTM, multiple containers, duplicate GA4 IDs)
 - PII in dataLayer (email/phone regex, suspicious keys)
 - Ecommerce field validation (transaction_id, currency, value, items)

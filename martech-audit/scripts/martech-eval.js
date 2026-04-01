@@ -50,6 +50,9 @@
   }).join(' ');
   const gtagInstalls = allScriptText.match(/G-[A-Z0-9]{4,12}/g) || [];
   const gtmInstalls = allScriptText.match(/GTM-[A-Z0-9]{4,12}/g) || [];
+  // GT- prefix: newer Google Tag IDs (from Google Site Kit, tag.google.com).
+  // These load gtag.js like GA4 IDs but are a different ID format.
+  const googleTagInstalls = allScriptText.match(/GT-[A-Z0-9]{4,12}/g) || [];
 
   // First-party vs third-party container classification
   const noscriptHtml = Array.from(document.querySelectorAll('noscript')).map(ns => ns.innerHTML).join(' ');
@@ -74,13 +77,24 @@
     s => s.src && s.src.includes('gtag/js?id=G-') && !s.src.includes('&cx=c')
   );
 
+  // Detect hardcoded gtag.js loading GT- (Google Tag) IDs — these are newer
+  // tag IDs from Google Site Kit / tag.google.com and indicate a separate
+  // tagging installation that may conflict with GTM-managed GA4.
+  const allGoogleTagIds = [...new Set(googleTagInstalls)];
+  const firstPartyHardcodedGoogleTag = topLevelScripts.some(
+    s => s.src && s.src.includes('gtag/js?id=GT-') && !s.src.includes('&cx=c')
+  );
+
   r.tagInstallations = {
     ga4Ids: allGa4Ids, gtmIds: allGtmIds,
+    googleTagIds: allGoogleTagIds,
     firstPartyGtmIds, firstPartyGa4Ids: topLevelGa4Ids,
     thirdPartyGtmIds, thirdPartyGa4Ids,
     hardcodedGtag: firstPartyHardcodedGtag,
+    hardcodedGoogleTag: firstPartyHardcodedGoogleTag,
     multipleGtmContainers: firstPartyGtmIds.length > 1,
-    doubleTagging: firstPartyHardcodedGtag && firstPartyGtmIds.length > 0,
+    // Double-tagging: hardcoded gtag.js (G- or GT-) alongside GTM
+    doubleTagging: (firstPartyHardcodedGtag || firstPartyHardcodedGoogleTag) && firstPartyGtmIds.length > 0,
   };
 
   // DataLayer
