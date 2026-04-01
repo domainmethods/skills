@@ -1014,6 +1014,89 @@ def check_utm_survival(page, all_pages):
     return findings
 
 
+def check_event_naming_consistency(pages_data):
+    """Mixed event naming conventions in the dataLayer (snake_case + camelCase + spaces).
+
+    Cross-page check: aggregates naming data from all pages to fire once for the site,
+    not once per page.
+    """
+    findings = []
+
+    # Aggregate formats and examples across all pages
+    all_formats = set()
+    all_examples = {}
+    any_checked = False
+
+    for page in pages_data:
+        dlq = page.get("dataLayerQuality", {})
+        naming = dlq.get("eventNamingConsistency", {})
+        if not naming.get("checked"):
+            continue
+        any_checked = True
+        for fmt in naming.get("formats", []):
+            all_formats.add(fmt)
+        for fmt, example in naming.get("examples", {}).items():
+            if fmt not in all_examples:
+                all_examples[fmt] = example
+
+    if not any_checked or len(all_formats) < 2:
+        return findings
+
+    formats = sorted(all_formats)
+    example_strs = [f"{fmt}: '{all_examples[fmt]}'" for fmt in formats if fmt in all_examples]
+    findings.append({
+        "id": "EVENT_NAMING_INCONSISTENT",
+        "severity": "moderate",
+        "title": f"Mixed event naming conventions: {' + '.join(formats)}",
+        "detail": (
+            f"Custom events use {len(formats)} different naming formats ({', '.join(example_strs)}). "
+            "GA4 treats 'addToCart' and 'add_to_cart' as separate events — reports fragment, "
+            "audiences miss events, and conversion counts underreport. Google recommends "
+            "snake_case (e.g., add_to_cart, form_submitted) for all custom events. "
+            "Known vendor events (Clearbit, Demandbase, 6sense, Drift, etc.) are excluded "
+            "from this analysis — only site-owner events are checked."
+        ),
+        "page": "cross-page",
+    })
+
+    return findings
+
+
+def check_ecommerce_funnel_completeness(page, all_pages):
+    """E-commerce funnel gaps — some GA4 ecommerce events present but key steps missing."""
+    findings = []
+    dlq = page.get("dataLayerQuality", {})
+    funnel = dlq.get("ecommerceFunnel", {})
+
+    if not funnel.get("hasAnyEcommerce"):
+        return findings
+
+    present = funnel.get("present", [])
+    missing = funnel.get("missing", [])
+
+    # Only flag if the site has SOME ecommerce events but is missing key ones.
+    # The critical funnel steps are view_item, add_to_cart, and purchase.
+    critical_missing = [e for e in missing if e in ("view_item", "add_to_cart", "purchase")]
+    if critical_missing and len(present) >= 1:
+        findings.append({
+            "id": "ECOMMERCE_FUNNEL_GAP",
+            "severity": "moderate",
+            "title": f"E-commerce funnel incomplete — missing: {', '.join(critical_missing)}",
+            "detail": (
+                f"GA4 ecommerce events present: {', '.join(present)}. "
+                f"Missing: {', '.join(critical_missing)}. "
+                "Incomplete funnel events mean GA4's Monetization reports show partial data, "
+                "funnel exploration reports have gaps, and remarketing audiences based on "
+                "funnel stage (e.g., 'added to cart but didn't purchase') can't be built. "
+                "Note: these events may fire on other pages (e.g., view_item on product pages, "
+                "purchase on thank-you pages) — check cross-page before flagging."
+            ),
+            "page": page.get("url", "unknown"),
+        })
+
+    return findings
+
+
 def check_cta_tracking(page, all_pages):
     """CTA buttons with zero tracking attributes."""
     findings = []
@@ -1935,6 +2018,7 @@ PER_PAGE_CHECKS = [
     check_thank_you_indexable,
     check_hidden_fields_empty,
     check_utm_survival,
+    check_ecommerce_funnel_completeness,
     check_cta_tracking,
     check_consent_mode_defaults,
     check_rogue_scripts_outside_gtm,
@@ -1949,6 +2033,7 @@ CROSS_PAGE_CHECKS = [
     check_og_image_sameness,
     check_crm_cookies,
     check_no_cmp_with_tracking,
+    check_event_naming_consistency,
 ]
 
 

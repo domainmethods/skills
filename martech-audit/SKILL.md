@@ -497,6 +497,8 @@ After inspecting all pages, look for:
 29. **Consent state not persisting** — From Step 2b navigation check: if the consent banner re-appears on page 2 after the user already accepted, the CMP cookie didn't persist. Every page load resets consent, fragmenting the session and annoying users.
 30. **Consent Mode Basic instead of Advanced** — From Step 2b: if zero GA4 requests fire when consent is denied (no cookieless pings), the site uses Basic mode and loses all behavioral/conversion modeling for non-consenting users. Advanced mode preserves anonymized pings legally.
 31. **sGTM not forwarding consent state** — From Step 2b sGTM check: if GA4 collect requests to the first-party endpoint lack `gcs`/`gcd` parameters, the server container can't respect consent and forwards data regardless. Compliance illusion — client looks clean, server doesn't care.
+32. **Mixed event naming conventions** — Check `dataLayerQuality.eventNamingConsistency`. If `mixedFormats` is true, the dataLayer has custom events using different naming conventions (e.g., `addToCart` alongside `form_submitted` alongside `Button Click`). GA4 treats these as separate events — the same action tracked under two names fragments reports, breaks audience definitions, and causes conversion undercounting. Google recommends snake_case for all custom events. This is an easy-to-demonstrate data quality finding: "your dataLayer is using 3 different naming conventions — here are the examples."
+33. **E-commerce funnel gaps** — Check `dataLayerQuality.ecommerceFunnel`. If `hasAnyEcommerce` is true but critical events are missing (view_item, add_to_cart, or purchase), the GA4 Monetization reports show partial data. Funnel exploration reports have gaps, and remarketing audiences based on funnel stage (e.g., "added to cart but didn't purchase") can't be built. **Important caveat:** ecommerce events are page-specific — `view_item` fires on product pages, `purchase` fires on thank-you pages. Check cross-page before reporting this as an issue; a single page missing `purchase` is expected if it's not the checkout confirmation page.
 
 ### Phase 3.5: Run Deterministic Checks
 
@@ -506,7 +508,7 @@ After collecting eval data from all pages, save each page's JS eval result as a 
 python scripts/check_findings.py --dir /path/to/page-evals/ --pretty
 ```
 
-This script runs 35 deterministic checks across all pages and produces structured findings with severity levels. It catches:
+This script runs 37 deterministic checks across all pages and produces structured findings with severity levels. It catches:
 - Double-tagging (hardcoded gtag + GTM, multiple containers, duplicate GA4 IDs)
 - PII in dataLayer (email/phone regex, suspicious keys)
 - Ecommerce field validation (transaction_id, currency, value, items)
@@ -532,6 +534,8 @@ This script runs 35 deterministic checks across all pages and produces structure
 - Rogue tracking scripts outside GTM (hardcoded pixels that bypass Consent Mode)
 - YouTube iframe cookie leaks (youtube.com instead of youtube-nocookie.com)
 - DataLayer race conditions (business data pushed after gtm.js — custom dimensions silently blank)
+- Event naming consistency (mixed snake_case/camelCase/spaces in custom dataLayer events)
+- E-commerce funnel completeness (some GA4 ecommerce events present but critical steps missing)
 - Cross-page consistency (GTM/GA4 missing on some pages, different container IDs)
 - OG image sameness (same image across all pages)
 
@@ -648,6 +652,8 @@ The report should be professional and factual — not salesy. The value proposit
 26. **Consent Mode Basic instead of Advanced** — blocking all Google signals when consent denied, losing behavioral and conversion modeling. Legal anonymized data thrown away.
 27. **Consent defaults to "granted"** — consent state assumes permission before the user acts. Provably illegal for EU traffic.
 28. **Over-blocking after consent** — tags never actually start firing even when the user grants consent. Compliance achieved, visibility lost.
+29. **Mixed event naming conventions** — dataLayer uses 3 different formats (snake_case, camelCase, spaces). GA4 treats `addToCart` and `add_to_cart` as separate events. Reports fragment, audiences miss events, conversion counts underreport.
+30. **Incomplete e-commerce funnel** — some GA4 ecommerce events fire (view_item) but critical steps are missing (add_to_cart, purchase). Monetization reports show partial data. Can't build funnel-stage remarketing audiences.
 
 End the report with "Recommended Next Steps" that are specific enough to demonstrate expertise but high-level enough that they'd want help implementing.
 

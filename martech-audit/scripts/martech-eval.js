@@ -188,6 +188,74 @@
       hasItems: Array.isArray(item.ecommerce?.items || item.items),
     })) : [],
     events: window.dataLayer ? [...new Set(window.dataLayer.filter(i => i && i.event).map(i => i.event))] : [],
+    // Event naming consistency — detect mixed conventions in custom events.
+    // Excludes system events AND known vendor-pushed events (Clearbit, Demandbase,
+    // 6sense, Drift, Intercom, etc.) whose naming the site owner can't control.
+    eventNamingConsistency: (() => {
+      const systemPrefixes = ['gtm.', 'gtm_consent', 'optimize.', 'consent'];
+      const vendorPatterns = [
+        /^(6si_|_6si)/i, /^demandbase/i, /^clearbit/i, /^drift/i, /^intercom/i,
+        /^qualified/i, /^hubspot/i, /^hs_/i, /^hbspt/i, /^klaviyo/i,
+        /^hotjar/i, /^hj[._]/, /^fullstory/i, /^fs[._]/, /^heap/i,
+        /^segment/i, /^amplitude/i, /^mixpanel/i, /^posthog/i,
+        /^chat_widget/, /^message_/, /^Leadfeeder/i, /^rb2b/i, /^warmly/i,
+        /^cookie/i, /^OneTrust/i, /^Osano/i, /^Cookiebot/i,
+      ];
+      const customEvents = (window.dataLayer || [])
+        .filter(i => i && i.event
+          && !systemPrefixes.some(p => i.event.startsWith(p))
+          && !vendorPatterns.some(p => p.test(i.event)))
+        .map(i => i.event);
+      if (customEvents.length < 2) return { checked: false, reason: 'too_few_events' };
+      const unique = [...new Set(customEvents)];
+      const hasSnakeCase = unique.some(e => /^[a-z][a-z0-9]*(_[a-z0-9]+)+$/.test(e));
+      const hasCamelCase = unique.some(e => /^[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*$/.test(e));
+      const hasSpaces = unique.some(e => /\s/.test(e));
+      const hasDashes = unique.some(e => /^[a-z][a-z0-9]*(-[a-z0-9]+)+$/.test(e));
+      const formats = [];
+      if (hasSnakeCase) formats.push('snake_case');
+      if (hasCamelCase) formats.push('camelCase');
+      if (hasSpaces) formats.push('spaces');
+      if (hasDashes) formats.push('kebab-case');
+      const examples = {};
+      unique.forEach(e => {
+        if (/^[a-z][a-z0-9]*(_[a-z0-9]+)+$/.test(e) && !examples.snake_case) examples.snake_case = e;
+        else if (/^[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*$/.test(e) && !examples.camelCase) examples.camelCase = e;
+        else if (/\s/.test(e) && !examples.spaces) examples.spaces = e;
+        else if (/^[a-z][a-z0-9]*(-[a-z0-9]+)+$/.test(e) && !examples['kebab-case']) examples['kebab-case'] = e;
+      });
+      return {
+        checked: true,
+        mixedFormats: formats.length > 1,
+        formats,
+        examples,
+        totalCustomEvents: unique.length,
+      };
+    })(),
+    // E-commerce funnel completeness — detect which standard GA4 ecommerce events fire
+    ecommerceFunnel: (() => {
+      const dl = window.dataLayer || [];
+      const events = dl.filter(i => i && i.event).map(i => i.event);
+      const funnelEvents = {
+        view_item: events.includes('view_item'),
+        view_item_list: events.includes('view_item_list'),
+        add_to_cart: events.includes('add_to_cart'),
+        view_cart: events.includes('view_cart'),
+        begin_checkout: events.includes('begin_checkout'),
+        add_payment_info: events.includes('add_payment_info'),
+        purchase: events.includes('purchase'),
+      };
+      const present = Object.entries(funnelEvents).filter(([,v]) => v).map(([k]) => k);
+      const missing = Object.entries(funnelEvents).filter(([,v]) => !v).map(([k]) => k);
+      return {
+        events: funnelEvents,
+        presentCount: present.length,
+        missingCount: missing.length,
+        present,
+        missing,
+        hasAnyEcommerce: present.length > 0,
+      };
+    })(),
   };
 
   // Cookies
