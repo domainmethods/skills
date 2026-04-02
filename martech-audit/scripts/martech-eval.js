@@ -1,5 +1,18 @@
 // Canonical martech eval script — single source of truth.
 // SKILL.md references this file; do not duplicate inline.
+//
+// IMPORTANT LIMITATION: This script runs at page-load time and captures the
+// dataLayer snapshot at that moment. Interaction-triggered events (CTA clicks,
+// form submissions, scroll depth, booking conversions) will NOT appear in the
+// dataLayer at page load — they only fire on user action. A dataLayer showing
+// only system events (gtm.js, gtm.dom, gtm.load) does NOT mean the site lacks
+// custom event tracking. Check the page source for event listener code
+// (addEventListener, dataLayer.push inside click/scroll/message handlers) before
+// reporting "no custom events" as a finding.
+//
+// Similarly, pixels loaded by GTM at runtime (not hardcoded in HTML) will not
+// appear in allScriptText. Use network request evidence (list_network_requests)
+// to confirm pixel presence for GTM-managed tags.
 () => {
   const r = {};
   r.url = location.href;
@@ -405,7 +418,9 @@
     didomi: allScriptText.includes('didomi.io') || allScriptText.includes('Didomi'),
     ketch: allScriptText.includes('ketch.com') || allScriptText.includes('semaphore.ketch'),
     iubenda: allScriptText.includes('iubenda.com'),
-    consentMode: allScriptText.includes("gtag('consent'") || allScriptText.includes('consent_mode') ||
+    // Check both single and double quotes — Hugo and other minifiers convert quote styles
+    consentMode: allScriptText.includes("gtag('consent'") || allScriptText.includes('gtag("consent"') ||
+      allScriptText.includes('consent_mode') ||
       (window.dataLayer || []).some(item => item && (
         item.event === 'gtm_consent_default' || item.event === 'gtm_consent_update' ||
         (item.value && (item.value.event === 'gtm_consent_default' || item.value.event === 'gtm_consent_update')) ||
