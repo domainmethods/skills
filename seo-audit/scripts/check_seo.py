@@ -43,6 +43,36 @@ def _is_homepage(url):
         return False
 
 
+def _has_field(page, *path):
+    """Check if a nested field was actually collected (present in JSON).
+
+    Returns True if the field exists in the data, even if its value is
+    falsy (None, 0, empty string, False). Returns False only when the
+    key is entirely absent — meaning the eval script didn't collect it.
+
+    Usage:
+        _has_field(page, "canonical")           # top-level key
+        _has_field(page, "canonical", "url")     # nested key
+        _has_field(page, "cwvIndicators", "viewportMeta")
+    """
+    obj = page
+    for key in path:
+        if not isinstance(obj, dict) or key not in obj:
+            return False
+        obj = obj[key]
+    return True
+
+
+def _normalize_url(url):
+    """Normalize URL for deduplication: strip trailing slash and fragment."""
+    try:
+        parsed = urlparse(url)
+        path = parsed.path.rstrip("/") or "/"
+        return f"{parsed.scheme}://{parsed.hostname}{path}"
+    except Exception:
+        return url.rstrip("/")
+
+
 # ---------------------------------------------------------------------------
 # Per-page checks
 # ---------------------------------------------------------------------------
@@ -161,8 +191,13 @@ def check_canonical(page, all_pages):
     normalization) is far less severe than a cross-domain canonical that effectively
     deindexes the page."""
     findings = []
-    canonical = page.get("canonical", {})
     url = page.get("url", "unknown")
+
+    # Skip if canonical data wasn't collected by the eval script
+    if not _has_field(page, "canonical"):
+        return findings
+
+    canonical = page.get("canonical", {})
 
     if not canonical.get("url"):
         findings.append({
@@ -444,8 +479,13 @@ def check_lazy_loading(page, all_pages):
 def check_schema_markup(page, all_pages):
     """No structured data (JSON-LD or Microdata)."""
     findings = []
-    schema = page.get("schema", {})
     url = page.get("url", "unknown")
+
+    # Skip if schema data wasn't collected
+    if not _has_field(page, "schema"):
+        return findings
+
+    schema = page.get("schema", {})
 
     json_ld_types = schema.get("jsonLdTypes", [])
     microdata_types = schema.get("microdataTypes", [])
@@ -555,8 +595,12 @@ def check_schema_validation(page, all_pages):
 def check_og_tags(page, all_pages):
     """Missing Open Graph tags."""
     findings = []
-    og = page.get("og", {})
     url = page.get("url", "unknown")
+
+    if not _has_field(page, "og"):
+        return findings
+
+    og = page.get("og", {})
 
     if not og.get("title") and not og.get("image"):
         # Check if any OG tags exist at all
@@ -607,8 +651,12 @@ def check_og_tags(page, all_pages):
 def check_twitter_card(page, all_pages):
     """Missing Twitter Card tags."""
     findings = []
-    twitter = page.get("twitter", {})
     url = page.get("url", "unknown")
+
+    if not _has_field(page, "twitter"):
+        return findings
+
+    twitter = page.get("twitter", {})
 
     if not twitter.get("card"):
         findings.append({
@@ -661,8 +709,13 @@ def check_noindex(page, all_pages):
 def check_viewport(page, all_pages):
     """Missing or misconfigured viewport meta tag."""
     findings = []
-    cwv = page.get("cwvIndicators", {})
     url = page.get("url", "unknown")
+
+    # Skip if CWV data wasn't collected by the eval script
+    if not _has_field(page, "cwvIndicators"):
+        return findings
+
+    cwv = page.get("cwvIndicators", {})
 
     if not cwv.get("viewportMeta"):
         findings.append({
@@ -697,8 +750,12 @@ def check_viewport(page, all_pages):
 def check_mixed_content(page, all_pages):
     """HTTPS page loading HTTP resources."""
     findings = []
-    security = page.get("security", {})
     url = page.get("url", "unknown")
+
+    if not _has_field(page, "security"):
+        return findings
+
+    security = page.get("security", {})
 
     if security.get("hasMixedContent"):
         count = security.get("mixedContentCount", 0)
@@ -1199,6 +1256,16 @@ CROSS_PAGE_CHECKS = [
 def run_checks(pages_data):
     """Run all checks and return structured findings."""
     all_findings = []
+
+    # Deduplicate pages by normalized URL before processing.
+    # If the same page appears multiple times (e.g., from duplicate file saves),
+    # keep the last occurrence (likely the most complete data).
+    seen_urls = {}
+    for page in pages_data:
+        url = page.get("url", "")
+        norm = _normalize_url(url) if url else ""
+        seen_urls[norm] = page
+    pages_data = list(seen_urls.values())
 
     # Per-page checks
     for page in pages_data:
