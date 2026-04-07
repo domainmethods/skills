@@ -262,6 +262,79 @@
     };
   })();
 
+  // --- Schema Details (for Google rich result eligibility checks) ---
+  r.schemaDetails = (() => {
+    const details = [];
+    try {
+      const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+      for (const s of scripts) {
+        try {
+          const data = JSON.parse(s.textContent);
+          const items = Array.isArray(data) ? data
+            : data['@graph'] ? data['@graph'] : [data];
+          // If @context is at the root (common with @graph), capture it
+          const rootContext = data['@context'] || null;
+
+          for (let idx = 0; idx < items.length; idx++) {
+            const item = items[idx];
+            const rawType = item['@type'];
+            if (!rawType) continue;
+            const types = Array.isArray(rawType) ? rawType : [rawType];
+            const normType = t => t.replace(/^https?:\/\/schema\.org\//i, '');
+            const props = Object.keys(item).filter(k => !k.startsWith('@'));
+            const detail = {
+              types: types.map(normType),
+              properties: props,
+              source: data['@graph'] ? `@graph[${idx}]` : 'root',
+              context: item['@context'] || rootContext || null,
+            };
+
+            // Nested validation for known important sub-objects
+            // Product.offers
+            if (types.some(t => normType(t) === 'Product') && item.offers) {
+              const offers = Array.isArray(item.offers) ? item.offers[0] : item.offers;
+              detail.offersProperties = offers ? Object.keys(offers).filter(k => !k.startsWith('@')) : [];
+            }
+            // Event.location
+            if (types.some(t => normType(t) === 'Event') && item.location) {
+              const loc = Array.isArray(item.location) ? item.location[0] : item.location;
+              detail.locationProperties = loc ? Object.keys(loc).filter(k => !k.startsWith('@')) : [];
+              detail.locationType = loc ? (loc['@type'] || null) : null;
+            }
+            // Event.offers
+            if (types.some(t => normType(t) === 'Event') && item.offers) {
+              const offers = Array.isArray(item.offers) ? item.offers[0] : item.offers;
+              detail.offersProperties = offers ? Object.keys(offers).filter(k => !k.startsWith('@')) : [];
+            }
+            // HowTo.step
+            if (types.some(t => normType(t) === 'HowTo') && item.step) {
+              const steps = Array.isArray(item.step) ? item.step : [item.step];
+              detail.stepCount = steps.length;
+              detail.stepsHaveNameAndText = steps.every(st =>
+                (st.name || st.text) || (st.itemListElement && st.itemListElement.length > 0)
+              );
+            }
+            // FAQPage.mainEntity — validate questions have acceptedAnswer
+            if (types.some(t => normType(t) === 'FAQPage') && item.mainEntity) {
+              const questions = Array.isArray(item.mainEntity) ? item.mainEntity : [item.mainEntity];
+              detail.questionCount = questions.length;
+              detail.questionsHaveAnswers = questions.every(q => q.acceptedAnswer);
+            }
+            // BreadcrumbList.itemListElement — validate items have position+name+item
+            if (types.some(t => normType(t) === 'BreadcrumbList') && item.itemListElement) {
+              const bcItems = Array.isArray(item.itemListElement) ? item.itemListElement : [item.itemListElement];
+              detail.breadcrumbItemCount = bcItems.length;
+              detail.breadcrumbItemsValid = bcItems.every(i => i.position && i.name && i.item);
+            }
+
+            details.push(detail);
+          }
+        } catch (e) { /* skip unparseable blocks */ }
+      }
+    } catch (e) { /* best effort */ }
+    return details;
+  })();
+
   // --- Open Graph Tags ---
   r.og = (() => {
     const get = prop => {
