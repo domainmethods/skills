@@ -26,21 +26,21 @@ Each category is scored 1-10. The overall score is the weighted average.
 
 | Score | Criteria |
 |-------|----------|
-| 9-10 | JSON-LD for Organization (homepage), BreadcrumbList (interior pages), and page-specific types (Article, Service, FAQ, Product). All schema validates with required fields. |
-| 7-8 | Organization schema present. Some page-specific schema. Minor validation issues. |
-| 5-6 | Basic schema present (e.g., WebSite only) but no page-specific types. Or Microdata instead of JSON-LD. |
-| 3-4 | Only itemtype on `<html>` tag (minimal Microdata). No JSON-LD. |
+| 9-10 | JSON-LD for Organization (homepage), BreadcrumbList (interior pages), and page-specific types (Article, Product, FAQ, HowTo, Event, SoftwareApplication). All schema has required AND most recommended properties per Google rich result eligibility. |
+| 7-8 | Schema present with all required properties for detected types. Some recommended properties missing. Minor gaps in page-specific types. |
+| 5-6 | Basic schema present (e.g., Organization only) but missing page-specific types. Or schema present but missing required properties (won't qualify for rich results). |
+| 3-4 | Only itemtype on `<html>` tag (minimal Microdata). No JSON-LD. Or JSON-LD present but invalid/incomplete. |
 | 1-2 | No structured data at all. |
 
 ## Core Web Vitals & Performance — Weight: 15%
 
 | Score | Criteria |
 |-------|----------|
-| 9-10 | All images have dimensions (no CLS risk), responsive images with srcset, lazy loading on below-fold images, few render-blocking resources, LCP element has fetchpriority="high". |
-| 7-8 | Most images sized. Some lazy loading. Moderate render-blocking resources. |
-| 5-6 | Many images without dimensions. No lazy loading. Several render-blocking scripts. No responsive images. |
-| 3-4 | Significant CLS risks. Heavy render-blocking. Large unoptimized images. |
-| 1-2 | Extreme performance issues: many render-blocking resources, no image optimization, mixed content warnings. |
+| 9-10 | LCP ≤2.5s (if traced), LCP image not lazy-loaded, fetchpriority="high" on LCP image, LCP resource preloaded, all images have dimensions, responsive images with srcset, ≤3 render-blocking resources. |
+| 7-8 | LCP ≤2.5s or not traced but no critical LCP issues. Most images sized. Missing fetchpriority or preload (but not both). Moderate render-blocking (4-5 resources). |
+| 5-6 | LCP 2.5-4.0s (needs improvement). Many images without dimensions. No fetchpriority. Several render-blocking resources. No responsive images. |
+| 3-4 | LCP >4.0s (poor) or LCP image lazy-loaded. Significant CLS risks. Heavy render-blocking (>6 resources). |
+| 1-2 | Multiple critical LCP issues: lazy-loaded LCP, no fetchpriority, many render-blocking resources, poor LCP rating. |
 
 ## Social & Sharing — Weight: 10%
 
