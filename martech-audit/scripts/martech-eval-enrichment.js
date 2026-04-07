@@ -2,8 +2,12 @@
 // Run this AFTER martech-eval-core.js via a second evaluate_script call.
 () => {
   const allScriptText = Array.from(document.querySelectorAll('script')).map(s => {
-    const src = s.src || s.getAttribute('data-rocket-src') || '';
-    return src + ' ' + (s.innerHTML || '').substring(0, 2000);
+    const src = s.src || s.getAttribute('data-rocket-src') || s.getAttribute('data-src') || '';
+    let decodedContent = '';
+    if (src.startsWith('data:') && src.includes('base64,')) {
+      try { decodedContent = atob(src.split('base64,')[1]); } catch(e) {}
+    }
+    return src + ' ' + (s.innerHTML || '').substring(0, 2000) + ' ' + decodedContent.substring(0, 2000);
   }).join(' ');
   const r = window.__martechCore || {};
 

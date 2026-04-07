@@ -337,7 +337,7 @@
     tvsquared: allScriptText.includes('tvsquared.com') || allScriptText.includes('tv2track'),
     connexity: allScriptText.includes('cnnx.link') || allScriptText.includes('connexity.net'),
     dnb: allScriptText.includes('d41.co') || allScriptText.includes('dnb_coretag'),
-    convertkit: allScriptText.includes('convertkit.com') || allScriptText.includes('f.convertkit.com') || allScriptText.includes('kit.com'),
+    convertkit: allScriptText.includes('convertkit.com') || allScriptText.includes('f.convertkit.com') || allScriptText.includes('app.kit.com') || allScriptText.includes('.kit.com/'),
   };
 
   // Alternative TMS
@@ -613,6 +613,9 @@
     hasOnclick: !!el.onclick,
     dataAttrs: Array.from(el.attributes).filter(a => a.name.startsWith('data-')).map(a => a.name),
   }));
+
+  // Store core results for enrichment script compatibility
+  window.__martechCore = r;
 
   // --- Enrichment fields (previously SKILL.md-only, now canonical) ---
 

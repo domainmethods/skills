@@ -337,7 +337,7 @@
     tvsquared: allScriptText.includes('tvsquared.com') || allScriptText.includes('tv2track'),
     connexity: allScriptText.includes('cnnx.link') || allScriptText.includes('connexity.net'),
     dnb: allScriptText.includes('d41.co') || allScriptText.includes('dnb_coretag'),
-    convertkit: allScriptText.includes('convertkit.com') || allScriptText.includes('f.convertkit.com') || allScriptText.includes('kit.com'),
+    convertkit: allScriptText.includes('convertkit.com') || allScriptText.includes('f.convertkit.com') || allScriptText.includes('app.kit.com') || allScriptText.includes('.kit.com/'),
   };
 
   // Alternative TMS
