@@ -54,13 +54,13 @@ URL patterns, cookie names, and JavaScript globals for detecting martech platfor
 
 ## Email & Marketing Automation
 
-| Platform | Script URL Pattern | Cookies | JS Global |
-|---|---|---|---|
-| ConvertKit | `f.convertkit.com/ckjs` | `_ck_visitor`, `_ck_subscriber` | — |
-| Mailchimp | `chimpstatic.com` | `mailchimp_` | `mc_` |
-| ActiveCampaign | `trackcmp.net` | — | `vgo` |
-| Klaviyo | `static.klaviyo.com` | — | `_learnq` |
-| Customer.io | `assets.customer.io` | — | `_cio` |
+| Platform | Script URL Pattern | Cookies | JS Global | Notes |
+|---|---|---|---|---|
+| ConvertKit / Kit | `f.convertkit.com/ckjs`, `kit.com` | `_ck_visitor`, `_ck_subscriber` | — | Rebranded to Kit in 2024. Forms submit to `app.kit.com`, JS still served from `f.convertkit.com`. |
+| Mailchimp | `chimpstatic.com` | `mailchimp_` | `mc_` | — |
+| ActiveCampaign | `trackcmp.net` | — | `vgo` | — |
+| Klaviyo | `static.klaviyo.com` | — | `_learnq` | — |
+| Customer.io | `assets.customer.io` | — | `_cio` | — |
 
 ## Consent Management Platforms
 
@@ -84,6 +84,7 @@ URL patterns, cookie names, and JavaScript globals for detecting martech platfor
 | 6sense | `6sense.com`, `6sc.co` | `_6si` | `_6sas`, `_6suuid` | Intent data and company identification. |
 | Bombora | `bombora.com` | — | — | B2B intent data. |
 | Warmly | `warmly.ai` | `warmly` | — | Real-time visitor identification + chat. |
+| Apollo.io | `assets.apollo.io`, `aplo-evnt.com` | — | — | Intent pixel for website visitor tracking. Uses `aplo-evnt.com` as tracking domain. |
 
 These tools perform visitor de-anonymization and should be disclosed in privacy policies. They are frequently broken (blocked by browser security) or misconfigured. Always check both if the script loads AND if the JS global exists (the global may be set by inline code even if the main script fails).
 
