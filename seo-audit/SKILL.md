@@ -88,13 +88,14 @@ The script returns a JSON object with these top-level keys:
 | `images` | Alt text coverage, lazy loading, responsive images, dimensions |
 | `links` | Internal/external counts, broken anchors, nofollow links, external domains |
 | `schema` | JSON-LD types, raw objects, microdata, boolean flags for Organization/WebSite/Breadcrumb/Article/FAQ |
+| `schemaDetails` | Per-type property lists for Google rich result eligibility validation |
 | `schemaValidation` | Missing required fields in detected schema |
 | `og` | Open Graph tags (title, description, image, url, type) |
 | `twitter` | Twitter Card tags |
 | `hreflang` | Hreflang tags and self-referencing check |
 | `resourceHints` | Preconnect, prefetch, preload, dns-prefetch links |
-| `cwvIndicators` | Images without dimensions (CLS risk), LCP candidate, viewport meta |
-| `resources` | Script/stylesheet counts, render-blocking resources |
+| `cwvIndicators` | Images without dimensions (CLS risk), LCP candidate (element, lazy status, fetchpriority, preload), viewport meta |
+| `resources` | Script/stylesheet counts, render-blocking resources (scripts + CSS with detail) |
 | `accessibility` | HTML lang, skip link, form label coverage |
 | `security` | HTTPS status, mixed content detection |
 | `content` | Word count, pagination rel links |
@@ -113,16 +114,37 @@ After the eval script runs:
    ```
    Check for X-Robots-Tag in response headers (some sites use HTTP headers instead of meta tags for noindex).
 
-2. **Performance trace** (optional, for CWV data):
+2. **LCP Performance Trace** (homepage only):
+   On the homepage, run a full performance trace to get LCP subpart timing:
    ```
-   performance_start_trace
+   performance_start_trace → reload: true, autoStop: true
    ```
-   Navigate to the page again, then:
+   After the trace completes, analyze LCP insights:
    ```
-   performance_stop_trace
-   performance_analyze_insight
+   performance_analyze_insight → insightName: "LCPBreakdown"
+   performance_analyze_insight → insightName: "RenderBlocking"
    ```
-   This provides real LCP, CLS, and FCP data. Include in the report if available.
+   Extract the four LCP subparts (TTFB, resource load delay, resource load duration, element render delay) and identify the bottleneck. Save as `lcpTrace` in the page JSON:
+   ```json
+   {
+     "lcpTrace": {
+       "totalLcp": 2.8,
+       "ttfb": 0.9,
+       "resourceLoadDelay": 0.6,
+       "resourceLoadDuration": 1.0,
+       "elementRenderDelay": 0.3,
+       "bottleneck": "resourceLoadDelay",
+       "lcpElement": "img.hero-banner",
+       "lcpResourceUrl": "/images/hero.webp",
+       "rating": "needs-improvement"
+     }
+   }
+   ```
+   Rating thresholds: `good` (≤2.5s), `needs-improvement` (2.5–4.0s), `poor` (>4.0s).
+
+   **If the trace times out or fails**, skip it — the lightweight LCP checks from the eval script still run on all pages.
+
+   **On non-homepage pages**, skip the trace. The eval script's `lcpCandidate` field provides lightweight LCP checks (lazy loading, fetchpriority, preload) without the overhead of a full trace.
 
 #### Step 4: robots.txt and sitemap.xml (once per domain, not per page)
 
@@ -164,6 +186,21 @@ Generate a professional SEO audit report with these sections:
 - Overall health score (1-10, using `references/scoring-rubric.md`)
 - Top 3-5 priority findings
 - Site type and scope (pages audited)
+
+#### LCP Performance (Homepage)
+
+*Include this section only if an LCP trace was collected on the homepage.*
+
+| Subpart | Time | % of LCP | Target | Status |
+|---------|------|----------|--------|--------|
+| TTFB | X.Xs | XX% | ~40% | OK/High |
+| Resource Load Delay | X.Xs | XX% | <10% | OK/High |
+| Resource Load Duration | X.Xs | XX% | ~40% | OK/High |
+| Element Render Delay | X.Xs | XX% | <10% | OK/High |
+| **Total LCP** | **X.Xs** | | ≤2.5s | Good/Needs Work/Poor |
+
+**LCP Element:** `<element description>`
+**Bottleneck:** [subpart name] — [one-sentence remediation]
 
 #### Scoring Breakdown
 Score each category per the rubric:
