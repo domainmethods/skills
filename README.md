@@ -6,8 +6,8 @@ Custom skills for AI coding agents that extend their capabilities for marketing 
 
 | Skill | Description |
 |-------|-------------|
-| [martech-audit](./martech-audit/) | Audit a website's marketing technology stack -- GA4, GTM, pixels, data layer, consent, and schema markup -- by inspecting live runtime behavior in a real browser |
-| [seo-audit](./seo-audit/) | Audit a website's technical SEO health -- meta tags, headings, schema markup, canonicals, Core Web Vitals indicators, and social sharing tags |
+| [martech-audit](./martech-audit/) | Martech tagging audit -- inspect a site's tag and pixel implementation (GA4, GTM, data layer, consent, ad pixels) by observing live runtime behavior |
+| [seo-audit](./seo-audit/) | Technical on-page SEO audit -- inspect meta tags, headings, schema markup, canonicals, Core Web Vitals (LCP), and social sharing tags in a real browser |
 
 ## Prerequisites
 

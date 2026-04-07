@@ -1,11 +1,11 @@
 ---
 name: seo-audit
-description: "Audit a website's technical SEO health — meta tags, headings, schema markup, canonicals, Core Web Vitals indicators, and social sharing tags — by inspecting live runtime behavior. Use this skill whenever the user wants to check a site's SEO health, audit on-page SEO, diagnose ranking issues, review meta tags, or run any kind of technical SEO audit. Also trigger when the user mentions 'SEO audit,' 'technical SEO,' 'why am I not ranking,' 'SEO issues,' 'on-page SEO,' 'meta tags review,' 'SEO health check,' 'my traffic dropped,' 'lost rankings,' 'not showing up in Google,' 'page speed issues,' 'core web vitals,' 'schema markup audit,' or vague requests like 'check my SEO.' This skill produces a scored, actionable report identifying missing tags, broken structure, and optimization opportunities."
+description: "Technical on-page SEO audit — inspect a website's meta tags, headings, schema markup, canonicals, Core Web Vitals (LCP), and social sharing tags by loading pages in a real browser. Use this skill whenever the user wants to check a site's SEO health, audit on-page SEO, diagnose ranking issues, review meta tags, or run any kind of technical SEO audit. Also trigger when the user mentions 'SEO audit,' 'technical SEO,' 'why am I not ranking,' 'SEO issues,' 'on-page SEO,' 'meta tags review,' 'SEO health check,' 'my traffic dropped,' 'lost rankings,' 'not showing up in Google,' 'page speed issues,' 'core web vitals,' 'schema markup audit,' or vague requests like 'check my SEO.' Produces a scored, actionable report identifying missing tags, broken structure, schema eligibility gaps, LCP bottlenecks, and optimization opportunities."
 ---
 
-# SEO Audit
+# Technical On-Page SEO Audit
 
-Audit a website's technical and on-page SEO by inspecting live pages in a real browser. Produces a scored report identifying structural issues, missing tags, schema gaps, and performance indicators.
+Audit a website's technical and on-page SEO by inspecting live pages in a real browser. Produces a scored report identifying structural issues, missing tags, schema eligibility gaps, LCP bottlenecks, and optimization opportunities.
 
 ## Why This Skill Exists
 

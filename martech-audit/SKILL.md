@@ -1,11 +1,11 @@
 ---
 name: martech-audit
-description: "Audit a website's marketing technology stack — GA4, GTM, pixels, data layer, consent, and schema markup — by inspecting live runtime behavior. Use this skill whenever the user wants to check a site's analytics setup, audit tracking pixels, diagnose GTM or GA4 issues, find broken tags, review a prospect's martech stack, do a 'data layer check,' assess tracking health, or run any kind of website analytics/tagging audit. Also trigger when the user mentions 'what pixels are on this site,' 'is their GA4 working,' 'check their tracking,' 'martech health check,' 'tag audit,' or 'pixel audit.' This skill produces a scored, bizdev-ready report that identifies broken tracking, missing events, and optimization opportunities."
+description: "Martech tagging audit — inspect a website's tag and pixel implementation (GA4, GTM, data layer, consent, ad pixels) by loading pages in a real browser and observing runtime behavior. Use this skill whenever the user wants to check a site's analytics setup, audit tracking pixels, diagnose GTM or GA4 issues, find broken tags, review a prospect's martech stack, do a 'data layer check,' assess tracking health, or run any kind of website analytics/tagging audit. Also trigger when the user mentions 'what pixels are on this site,' 'is their GA4 working,' 'check their tracking,' 'martech health check,' 'tag audit,' or 'pixel audit.' Produces a scored, bizdev-ready report identifying broken tracking, missing events, consent gaps, and optimization opportunities."
 ---
 
-# Martech Audit
+# Martech Tagging Audit
 
-Audit a website's marketing technology stack by inspecting live runtime behavior. Produces a scored report identifying broken tracking, missing events, consent gaps, and optimization opportunities.
+Audit a website's tag and pixel implementation by inspecting live runtime behavior. Produces a scored report identifying broken tracking, missing events, consent gaps, and optimization opportunities.
 
 ## Why This Skill Exists
 
