@@ -242,6 +242,9 @@ def check_consent(page, all_pages):
 def check_schema_markup(page, all_pages):
     """Missing JSON-LD schema markup."""
     findings = []
+    # Skip if field was not collected (absent from JSON entirely)
+    if "schema" not in page:
+        return findings
     schema = page.get("schema", {})
 
     # schema can be a list of type strings (from eval) or a dict with a count key
@@ -262,6 +265,12 @@ def check_schema_markup(page, all_pages):
 def check_canonical(page, all_pages):
     """Missing canonical URL."""
     findings = []
+    # Skip if canonical field was not collected (absent from JSON entirely).
+    # The eval script writes canonical at top level (r.canonical = r.meta.canonical),
+    # so checking "canonical" not in page is sufficient. The meta fallback is for
+    # legacy JSON formats, but meta can be present for unrelated fields.
+    if "canonical" not in page and "canonical" not in page.get("meta", {}):
+        return findings
     # canonical may be at top level (from eval) or nested under meta
     meta = page.get("meta", {})
     canonical = page.get("canonical") or meta.get("canonical")
@@ -458,6 +467,9 @@ def check_tag_sprawl(page, all_pages):
 def check_ghost_preconnects(page, all_pages):
     """Preconnect hints for domains that don't have matching loaded scripts."""
     findings = []
+    # Skip if pixel data was not collected — can't distinguish ghost from uncollected
+    if "pixels" not in page:
+        return findings
     preconnects = page.get("preconnects", [])
     scripts = page.get("scripts", [])
     pixels = page.get("pixels", {})

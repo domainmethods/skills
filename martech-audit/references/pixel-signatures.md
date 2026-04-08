@@ -124,7 +124,7 @@ Shopify sites have a distinctive tracking architecture. In addition to standard 
 | Shopify Web Pixels | `web-pixels@*/sandbox/modern/` (iframe src) | — | — | Sandboxed iframes that load app-installed pixels (TikTok, Google Ads, Bing, etc.) in isolated contexts. Invisible to eval script. Count iframes to estimate pixel load. |
 | Shopify Trekkie | `trekkie.storefront.*.min.js` | `_shopify_s`, `_shopify_y` | — | Shopify's first-party analytics. Always present on Shopify stores. |
 | Mountain.com | `px.mountain.com/st`, `dx.mountain.com/spx` | — | — | Shopify attribution/analytics platform. Sends GA4 client ID and page metadata to Mountain's servers. |
-| SafeOpt | `manage.safeopt.com` | — | — | Email remarketing and identity resolution. Often installed via Shopify app. Makes HEAD requests to `/consent` endpoint. Should be disclosed in privacy policy. |
+| SafeOpt | `manage.safeopt.com` | — | — | Email remarketing and identity resolution. Often installed via Shopify app. Makes HEAD requests to `/consent` endpoint. Should be disclosed in privacy policy. See also: AddShoppers in Identity Resolution section (same vendor, `shop.pe` domains). |
 | Postscript | `sdk.postscript.io` | — | — | SMS marketing platform for Shopify. Loads SDK script loader and form handler. |
 | SMSBump (Yotpo SMS) | `forms-akamai.smsbump.com`, `d18eg7dreypte5.cloudfront.net` | — | — | SMS marketing. Now part of Yotpo. Loads subscription scripts and browse-abandonment timers. |
 | Recharge | `static.rechargecdn.com` | — | — | Subscription management for Shopify. Loads widget scripts for subscription product options. |
@@ -133,8 +133,15 @@ Shopify sites have a distinctive tracking architecture. In addition to standard 
 
 | Platform | Script URL Pattern | Cookies | JS Global | Notes |
 |---|---|---|---|---|
-| Northbeam | `j.northbeam.io` | — | — | Multi-touch attribution platform. Loads vendor script and account-specific config (`ota-sp/*.js`). |
-| StackAdapt | `tags.srv.stackadapt.com/events.js` | — | — | Programmatic DSP. Fires event tracking for campaign attribution. |
+| Northbeam | `j.northbeam.io` | `_nb_sp_id.*`, `_nb_sp_ses.*` | — | Multi-touch attribution platform. Loads vendor script and account-specific config (`ota-sp/*.js`). May use first-party subdomain for collection (e.g., `i.example.com/nb-collector`). |
+| StackAdapt | `tags.srv.stackadapt.com/events.js` | — | — | Programmatic DSP. Fires event tracking for campaign attribution. Also fires `saq_pxl` and `js_tracking` endpoints. |
+| Impact.com | `trkapi.impact.com/PageLoad` | — | — | Affiliate network and partnership tracking. Fires PageLoad events for attribution. Disclosed in privacy policies as affiliate cookie tracking. |
+
+## Identity Resolution & Retargeting
+
+| Platform | Script URL Pattern | Cookies | JS Global | Notes |
+|---|---|---|---|---|
+| AddShoppers (SafeOpt) | `shop.pe/widget/widget_async.js`, `shopper.shop.pe/input.js` | — | — | Identity resolution and email remarketing for ecommerce. Also check `manage.safeopt.com` and `app.shop.pe/app/datapartners/status` endpoints. Polls identity status repeatedly. Should be disclosed in privacy policy. |
 
 ## Reviews & UGC
 
